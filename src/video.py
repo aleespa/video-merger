@@ -12,11 +12,7 @@ VIDEO_EXTENSIONS = (".mp4", ".mov", ".mxf", ".mkv")
 
 def get_videos_dates(settings: Settings) -> tuple[list, ...]:
     logger.info("Getting videos and their dates.")
-    files = [
-        os.path.join(settings.input_folder, f)
-        for f in os.listdir(settings.input_folder)
-        if f.lower().endswith(VIDEO_EXTENSIONS)
-    ]
+    files = settings.input_files
 
     if not files:
         raise RuntimeError("No video files found")

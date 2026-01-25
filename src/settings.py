@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 @dataclass
 class Settings:
-    input_folder: str
+    input_files: list[str]
     output_folder: str
     output_file_name: str
     font: str
