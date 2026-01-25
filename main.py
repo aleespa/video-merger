@@ -1,11 +1,14 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, scrolledtext
+from tkinter import filedialog, messagebox
 from zoneinfo import ZoneInfo, available_timezones
-
+import customtkinter as ctk
 from loguru import logger
 
 from src.settings import Settings
 from src.video import get_videos_dates, get_filter_graph, run_ffmpeg
+
+ctk.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
+ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue")
 
 
 class TkinterSink:
@@ -13,136 +16,200 @@ class TkinterSink:
         self.text_widget = text_widget
 
     def write(self, message):
+        self.text_widget.configure(state="normal")
         self.text_widget.insert(tk.END, message)
         self.text_widget.see(tk.END)
+        self.text_widget.configure(state="disabled")
         self.text_widget.update_idletasks()
 
 
 logger.add("logs/log.txt", rotation="10 MB")
 
 
-class App:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Video Scripting UI")
+class App(ctk.CTk):
+    def __init__(self):
+        super().__init__()
 
-        # Create input fields
-        self.entries = {}
+        self.title("Video Scripting UI")
+        self.geometry("900x750")
+
+        # Configure grid layout (1x2)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        self.main_frame = ctk.CTkFrame(self)
+        self.main_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+        self.main_frame.grid_columnconfigure(1, weight=1)
 
         row = 0
 
+        # Title
+        self.label_title = ctk.CTkLabel(
+            self.main_frame,
+            text="Video Scripting",
+            font=ctk.CTkFont(size=24, weight="bold"),
+        )
+        self.label_title.grid(row=row, column=0, columnspan=3, pady=(0, 20))
+        row += 1
+
         # Input Files
-        tk.Label(root, text="Input Files:").grid(row=row, column=0, sticky="e")
+        ctk.CTkLabel(self.main_frame, text="Input Files:").grid(
+            row=row, column=0, padx=10, pady=5, sticky="e"
+        )
         self.input_files_var = tk.StringVar(value="")
-        tk.Entry(root, textvariable=self.input_files_var, width=50).grid(
-            row=row, column=1
+        self.input_files_entry = ctk.CTkEntry(
+            self.main_frame, textvariable=self.input_files_var
         )
-        tk.Button(root, text="Browse", command=self.browse_input).grid(
-            row=row, column=2
-        )
+        self.input_files_entry.grid(row=row, column=1, padx=10, pady=5, sticky="we")
+        ctk.CTkButton(
+            self.main_frame, text="Browse", width=100, command=self.browse_input
+        ).grid(row=row, column=2, padx=10, pady=5)
         row += 1
 
         # Output Folder
-        tk.Label(root, text="Output Folder:").grid(row=row, column=0, sticky="e")
+        ctk.CTkLabel(self.main_frame, text="Output Folder:").grid(
+            row=row, column=0, padx=10, pady=5, sticky="e"
+        )
         self.output_folder_var = tk.StringVar(value="outputs")
-        tk.Entry(root, textvariable=self.output_folder_var, width=50).grid(
-            row=row, column=1
+        self.output_folder_entry = ctk.CTkEntry(
+            self.main_frame, textvariable=self.output_folder_var
         )
-        tk.Button(root, text="Browse", command=self.browse_output).grid(
-            row=row, column=2
-        )
+        self.output_folder_entry.grid(row=row, column=1, padx=10, pady=5, sticky="we")
+        ctk.CTkButton(
+            self.main_frame, text="Browse", width=100, command=self.browse_output
+        ).grid(row=row, column=2, padx=10, pady=5)
         row += 1
 
         # Output File Name
-        tk.Label(root, text="Output File Name:").grid(row=row, column=0, sticky="e")
+        ctk.CTkLabel(self.main_frame, text="Output File Name:").grid(
+            row=row, column=0, padx=10, pady=5, sticky="e"
+        )
         self.output_file_name_var = tk.StringVar(value="output.mp4")
-        tk.Entry(root, textvariable=self.output_file_name_var, width=50).grid(
-            row=row, column=1
+        self.output_file_name_entry = ctk.CTkEntry(
+            self.main_frame, textvariable=self.output_file_name_var
+        )
+        self.output_file_name_entry.grid(
+            row=row, column=1, padx=10, pady=5, sticky="we"
         )
         row += 1
 
         # Font Path
-        tk.Label(root, text="Font File:").grid(row=row, column=0, sticky="e")
+        ctk.CTkLabel(self.main_frame, text="Font File:").grid(
+            row=row, column=0, padx=10, pady=5, sticky="e"
+        )
         self.font_var = tk.StringVar(value="fonts/NotoSans_Condensed-Medium.ttf")
-        tk.Entry(root, textvariable=self.font_var, width=50).grid(row=row, column=1)
-        tk.Button(root, text="Browse", command=self.browse_font).grid(row=row, column=2)
+        self.font_entry = ctk.CTkEntry(self.main_frame, textvariable=self.font_var)
+        self.font_entry.grid(row=row, column=1, padx=10, pady=5, sticky="we")
+        ctk.CTkButton(
+            self.main_frame, text="Browse", width=100, command=self.browse_font
+        ).grid(row=row, column=2, padx=10, pady=5)
         row += 1
+
+        # Options Frame
+        self.options_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.options_frame.grid(
+            row=row, column=0, columnspan=3, padx=0, pady=10, sticky="we"
+        )
+        self.options_frame.grid_columnconfigure((1, 3, 5), weight=1)
 
         # Font Size
-        tk.Label(root, text="Font Size:").grid(row=row, column=0, sticky="e")
-        self.font_size_var = tk.IntVar(value=52)
-        tk.Entry(root, textvariable=self.font_size_var, width=10).grid(
-            row=row, column=1, sticky="w"
+        ctk.CTkLabel(self.options_frame, text="Font Size:").grid(
+            row=0, column=0, padx=10, pady=5, sticky="e"
         )
-        row += 1
+        self.font_size_var = tk.IntVar(value=52)
+        ctk.CTkEntry(self.options_frame, textvariable=self.font_size_var, width=60).grid(
+            row=0, column=1, padx=10, pady=5, sticky="w"
+        )
 
         # Date X Offset
-        tk.Label(root, text="Date X Offset:").grid(row=row, column=0, sticky="e")
-        self.date_x_offset_var = tk.IntVar(value=40)
-        tk.Entry(root, textvariable=self.date_x_offset_var, width=10).grid(
-            row=row, column=1, sticky="w"
+        ctk.CTkLabel(self.options_frame, text="X Offset:").grid(
+            row=0, column=2, padx=10, pady=5, sticky="e"
         )
-        row += 1
+        self.date_x_offset_var = tk.IntVar(value=40)
+        ctk.CTkEntry(
+            self.options_frame, textvariable=self.date_x_offset_var, width=60
+        ).grid(row=0, column=3, padx=10, pady=5, sticky="w")
 
         # Date Y Offset
-        tk.Label(root, text="Date Y Offset:").grid(row=row, column=0, sticky="e")
-        self.date_y_offset_var = tk.IntVar(value=40)
-        tk.Entry(root, textvariable=self.date_y_offset_var, width=10).grid(
-            row=row, column=1, sticky="w"
+        ctk.CTkLabel(self.options_frame, text="Y Offset:").grid(
+            row=0, column=4, padx=10, pady=5, sticky="e"
         )
-        row += 1
+        self.date_y_offset_var = tk.IntVar(value=40)
+        ctk.CTkEntry(
+            self.options_frame, textvariable=self.date_y_offset_var, width=60
+        ).grid(row=0, column=5, padx=10, pady=5, sticky="w")
 
         # Font Color
-        tk.Label(root, text="Font Color:").grid(row=row, column=0, sticky="e")
-        self.font_color_var = tk.StringVar(value="white")
-        tk.Entry(root, textvariable=self.font_color_var, width=10).grid(
-            row=row, column=1, sticky="w"
+        ctk.CTkLabel(self.options_frame, text="Font Color:").grid(
+            row=1, column=0, padx=10, pady=5, sticky="e"
         )
-        row += 1
+        self.font_color_var = tk.StringVar(value="white")
+        ctk.CTkEntry(
+            self.options_frame, textvariable=self.font_color_var, width=100
+        ).grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
         # Fade Duration
-        tk.Label(root, text="Fade Duration (s):").grid(row=row, column=0, sticky="e")
-        self.fade_duration_var = tk.DoubleVar(value=1.0)
-        tk.Entry(root, textvariable=self.fade_duration_var, width=10).grid(
-            row=row, column=1, sticky="w"
+        ctk.CTkLabel(self.options_frame, text="Fade (s):").grid(
+            row=1, column=2, padx=10, pady=5, sticky="e"
         )
+        self.fade_duration_var = tk.DoubleVar(value=1.0)
+        ctk.CTkEntry(
+            self.options_frame, textvariable=self.fade_duration_var, width=60
+        ).grid(row=1, column=3, padx=10, pady=5, sticky="w")
+
         row += 1
 
         # Timezones
         timezones = sorted(list(available_timezones()))
 
-        tk.Label(root, text="Source Timezone:").grid(row=row, column=0, sticky="e")
-        self.source_tz_var = tk.StringVar(value="Europe/London")
-        tk.OptionMenu(root, self.source_tz_var, *timezones).grid(
-            row=row, column=1, sticky="w"
-        )
-        row += 1
+        self.tz_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.tz_frame.grid(row=row, column=0, columnspan=3, padx=0, pady=10, sticky="we")
+        self.tz_frame.grid_columnconfigure((1, 3), weight=1)
 
-        tk.Label(root, text="Target Timezone:").grid(row=row, column=0, sticky="e")
-        self.target_tz_var = tk.StringVar(value="Europe/London")
-        tk.OptionMenu(root, self.target_tz_var, *timezones).grid(
-            row=row, column=1, sticky="w"
+        ctk.CTkLabel(self.tz_frame, text="Source TZ:").grid(
+            row=0, column=0, padx=10, pady=5, sticky="e"
         )
+        self.source_tz_var = tk.StringVar(value="Europe/London")
+        self.source_tz_menu = ctk.CTkOptionMenu(
+            self.tz_frame, values=timezones, variable=self.source_tz_var
+        )
+        self.source_tz_menu.grid(row=0, column=1, padx=10, pady=5, sticky="we")
+
+        ctk.CTkLabel(self.tz_frame, text="Target TZ:").grid(
+            row=0, column=2, padx=10, pady=5, sticky="e"
+        )
+        self.target_tz_var = tk.StringVar(value="Europe/London")
+        self.target_tz_menu = ctk.CTkOptionMenu(
+            self.tz_frame, values=timezones, variable=self.target_tz_var
+        )
+        self.target_tz_menu.grid(row=0, column=3, padx=10, pady=5, sticky="we")
+
         row += 1
 
         # Run Button
-        (
-            tk.Button(
-                root,
-                text="Merge videos",
-                command=self.run_program,
-                bg="#044011",
-                fg="white",
-                font=("Arial", 12, "bold"),
-            ).grid(row=row, column=0, columnspan=3, pady=20)
+        self.run_button = ctk.CTkButton(
+            self.main_frame,
+            text="Merge Videos",
+            command=self.run_program,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            height=40,
+            fg_color="#2c8c3a",
+            hover_color="#23702e",
         )
+        self.run_button.grid(row=row, column=0, columnspan=3, pady=20, sticky="we")
         row += 1
 
         # Log Box
-        tk.Label(root, text="Logs:").grid(row=row, column=0, sticky="nw")
-        self.log_text = scrolledtext.ScrolledText(root, height=10, width=80)
-        self.log_text.grid(row=row, column=1, columnspan=2, sticky="we")
+        ctk.CTkLabel(self.main_frame, text="Logs:", font=ctk.CTkFont(weight="bold")).grid(
+            row=row, column=0, padx=10, pady=(10, 0), sticky="nw"
+        )
         row += 1
+        self.log_text = ctk.CTkTextbox(self.main_frame, height=200)
+        self.log_text.grid(
+            row=row, column=0, columnspan=3, padx=10, pady=5, sticky="nsew"
+        )
+        self.main_frame.grid_rowconfigure(row, weight=1)
+        self.log_text.configure(state="disabled")
 
         # Configure logguru to use the text widget
         logger.add(
@@ -156,7 +223,6 @@ class App:
             filetypes=[("Video files", "*.mp4 *.mov *.mxf *.mkv")]
         )
         if files:
-            # We store them as a semicolon-separated string in the entry for visibility
             self.input_files_var.set(";".join(files))
 
     def browse_output(self):
@@ -171,7 +237,9 @@ class App:
 
     def run_program(self):
         try:
-            self.log_text.delete(1.0, tk.END)  # Clear logs before new run
+            self.log_text.configure(state="normal")
+            self.log_text.delete("1.0", tk.END)
+            self.log_text.configure(state="disabled")
 
             input_files_str = self.input_files_var.get()
             if not input_files_str:
@@ -207,6 +275,5 @@ class App:
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = App(root)
-    root.mainloop()
+    app = App()
+    app.mainloop()
