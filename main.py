@@ -97,96 +97,26 @@ class App(ctk.CTk):
         row += 1
 
         # Font Path
-        ctk.CTkLabel(self.main_frame, text="Font File:").grid(
-            row=row, column=0, padx=10, pady=5, sticky="e"
-        )
         self.font_var = tk.StringVar(value="fonts/NotoSans_Condensed-Medium.ttf")
-        self.font_entry = ctk.CTkEntry(self.main_frame, textvariable=self.font_var)
-        self.font_entry.grid(row=row, column=1, padx=10, pady=5, sticky="we")
-        ctk.CTkButton(
-            self.main_frame, text="Browse", width=100, command=self.browse_font
-        ).grid(row=row, column=2, padx=10, pady=5)
-        row += 1
 
-        # Options Frame
-        self.options_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.options_frame.grid(
-            row=row, column=0, columnspan=3, padx=0, pady=10, sticky="we"
-        )
-        self.options_frame.grid_columnconfigure((1, 3, 5), weight=1)
-
-        # Font Size
-        ctk.CTkLabel(self.options_frame, text="Font Size:").grid(
-            row=0, column=0, padx=10, pady=5, sticky="e"
-        )
+        # Options variables
         self.font_size_var = tk.IntVar(value=52)
-        ctk.CTkEntry(self.options_frame, textvariable=self.font_size_var, width=60).grid(
-            row=0, column=1, padx=10, pady=5, sticky="w"
-        )
-
-        # Date X Offset
-        ctk.CTkLabel(self.options_frame, text="X Offset:").grid(
-            row=0, column=2, padx=10, pady=5, sticky="e"
-        )
         self.date_x_offset_var = tk.IntVar(value=40)
-        ctk.CTkEntry(
-            self.options_frame, textvariable=self.date_x_offset_var, width=60
-        ).grid(row=0, column=3, padx=10, pady=5, sticky="w")
-
-        # Date Y Offset
-        ctk.CTkLabel(self.options_frame, text="Y Offset:").grid(
-            row=0, column=4, padx=10, pady=5, sticky="e"
-        )
         self.date_y_offset_var = tk.IntVar(value=40)
-        ctk.CTkEntry(
-            self.options_frame, textvariable=self.date_y_offset_var, width=60
-        ).grid(row=0, column=5, padx=10, pady=5, sticky="w")
-
-        # Font Color
-        ctk.CTkLabel(self.options_frame, text="Font Color:").grid(
-            row=1, column=0, padx=10, pady=5, sticky="e"
-        )
         self.font_color_var = tk.StringVar(value="white")
-        ctk.CTkEntry(
-            self.options_frame, textvariable=self.font_color_var, width=100
-        ).grid(row=1, column=1, padx=10, pady=5, sticky="w")
-
-        # Fade Duration
-        ctk.CTkLabel(self.options_frame, text="Fade (s):").grid(
-            row=1, column=2, padx=10, pady=5, sticky="e"
-        )
         self.fade_duration_var = tk.DoubleVar(value=1.0)
-        ctk.CTkEntry(
-            self.options_frame, textvariable=self.fade_duration_var, width=60
-        ).grid(row=1, column=3, padx=10, pady=5, sticky="w")
 
-        row += 1
-
-        # Timezones
-        timezones = sorted(list(available_timezones()))
-
-        self.tz_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.tz_frame.grid(row=row, column=0, columnspan=3, padx=0, pady=10, sticky="we")
-        self.tz_frame.grid_columnconfigure((1, 3), weight=1)
-
-        ctk.CTkLabel(self.tz_frame, text="Source TZ:").grid(
-            row=0, column=0, padx=10, pady=5, sticky="e"
-        )
+        # Timezones variables
         self.source_tz_var = tk.StringVar(value="Europe/London")
-        self.source_tz_menu = ctk.CTkOptionMenu(
-            self.tz_frame, values=timezones, variable=self.source_tz_var
-        )
-        self.source_tz_menu.grid(row=0, column=1, padx=10, pady=5, sticky="we")
-
-        ctk.CTkLabel(self.tz_frame, text="Target TZ:").grid(
-            row=0, column=2, padx=10, pady=5, sticky="e"
-        )
         self.target_tz_var = tk.StringVar(value="Europe/London")
-        self.target_tz_menu = ctk.CTkOptionMenu(
-            self.tz_frame, values=timezones, variable=self.target_tz_var
-        )
-        self.target_tz_menu.grid(row=0, column=3, padx=10, pady=5, sticky="we")
 
+        # Date Label Options Button
+        self.options_button = ctk.CTkButton(
+            self.main_frame,
+            text="Date label options",
+            command=self.open_options,
+        )
+        self.options_button.grid(row=row, column=0, columnspan=3, pady=10)
         row += 1
 
         # Run Button
@@ -220,6 +150,108 @@ class App(ctk.CTk):
             format="{time:HH:mm:ss} | {level: <8} | {message}",
             colorize=False,
         )
+
+    def open_options(self):
+        if hasattr(self, "options_window") and self.options_window.winfo_exists():
+            self.options_window.focus()
+            return
+
+        self.options_window = ctk.CTkToplevel(self)
+        self.options_window.title("Date Label Options")
+        self.options_window.geometry("600x400")
+        self.options_window.grid_columnconfigure(0, weight=1)
+        self.options_window.grid_rowconfigure(0, weight=1)
+
+        # Ensure the window is on top
+        self.options_window.attributes("-topmost", True)
+
+        options_main_frame = ctk.CTkFrame(self.options_window)
+        options_main_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+        options_main_frame.grid_columnconfigure(1, weight=1)
+
+        row = 0
+        # Font Path
+        ctk.CTkLabel(options_main_frame, text="Font File:").grid(
+            row=row, column=0, padx=10, pady=5, sticky="e"
+        )
+        self.font_entry = ctk.CTkEntry(options_main_frame, textvariable=self.font_var)
+        self.font_entry.grid(row=row, column=1, padx=10, pady=5, sticky="we")
+        ctk.CTkButton(
+            options_main_frame, text="Browse", width=100, command=self.browse_font
+        ).grid(row=row, column=2, padx=10, pady=5)
+        row += 1
+
+        # Options Frame
+        self.options_frame = ctk.CTkFrame(options_main_frame, fg_color="transparent")
+        self.options_frame.grid(
+            row=row, column=0, columnspan=3, padx=0, pady=10, sticky="we"
+        )
+        self.options_frame.grid_columnconfigure((1, 3, 5), weight=1)
+
+        # Font Size
+        ctk.CTkLabel(self.options_frame, text="Font Size:").grid(
+            row=0, column=0, padx=10, pady=5, sticky="e"
+        )
+        ctk.CTkEntry(self.options_frame, textvariable=self.font_size_var, width=60).grid(
+            row=0, column=1, padx=10, pady=5, sticky="w"
+        )
+
+        # Date X Offset
+        ctk.CTkLabel(self.options_frame, text="X Offset:").grid(
+            row=0, column=2, padx=10, pady=5, sticky="e"
+        )
+        ctk.CTkEntry(
+            self.options_frame, textvariable=self.date_x_offset_var, width=60
+        ).grid(row=0, column=3, padx=10, pady=5, sticky="w")
+
+        # Date Y Offset
+        ctk.CTkLabel(self.options_frame, text="Y Offset:").grid(
+            row=0, column=4, padx=10, pady=5, sticky="e"
+        )
+        ctk.CTkEntry(
+            self.options_frame, textvariable=self.date_y_offset_var, width=60
+        ).grid(row=0, column=5, padx=10, pady=5, sticky="w")
+
+        # Font Color
+        ctk.CTkLabel(self.options_frame, text="Font Color:").grid(
+            row=1, column=0, padx=10, pady=5, sticky="e"
+        )
+        ctk.CTkEntry(
+            self.options_frame, textvariable=self.font_color_var, width=100
+        ).grid(row=1, column=1, padx=10, pady=5, sticky="w")
+
+        # Fade Duration
+        ctk.CTkLabel(self.options_frame, text="Fade (s):").grid(
+            row=1, column=2, padx=10, pady=5, sticky="e"
+        )
+        ctk.CTkEntry(
+            self.options_frame, textvariable=self.fade_duration_var, width=60
+        ).grid(row=1, column=3, padx=10, pady=5, sticky="w")
+
+        row += 1
+
+        # Timezones
+        timezones = sorted(list(available_timezones()))
+
+        self.tz_frame = ctk.CTkFrame(options_main_frame, fg_color="transparent")
+        self.tz_frame.grid(row=row, column=0, columnspan=3, padx=0, pady=10, sticky="we")
+        self.tz_frame.grid_columnconfigure((1, 3), weight=1)
+
+        ctk.CTkLabel(self.tz_frame, text="Source TZ:").grid(
+            row=0, column=0, padx=10, pady=5, sticky="e"
+        )
+        self.source_tz_menu = ctk.CTkOptionMenu(
+            self.tz_frame, values=timezones, variable=self.source_tz_var
+        )
+        self.source_tz_menu.grid(row=0, column=1, padx=10, pady=5, sticky="we")
+
+        ctk.CTkLabel(self.tz_frame, text="Target TZ:").grid(
+            row=0, column=2, padx=10, pady=5, sticky="e"
+        )
+        self.target_tz_menu = ctk.CTkOptionMenu(
+            self.tz_frame, values=timezones, variable=self.target_tz_var
+        )
+        self.target_tz_menu.grid(row=0, column=3, padx=10, pady=5, sticky="we")
 
     def browse_input(self):
         files = filedialog.askopenfilenames(
