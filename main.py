@@ -1,3 +1,4 @@
+import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from zoneinfo import ZoneInfo, available_timezones
@@ -236,42 +237,62 @@ class App(ctk.CTk):
             self.font_var.set(file)
 
     def run_program(self):
+        def worker():
+            try:
+                input_files_str = self.input_files_var.get()
+                if not input_files_str:
+                    raise ValueError("No input files selected")
+
+                input_files = input_files_str.split(";")
+
+                settings = Settings(
+                    input_files=input_files,
+                    output_folder=self.output_folder_var.get(),
+                    output_file_name=self.output_file_name_var.get(),
+                    font=self.font_var.get(),
+                    font_size=self.font_size_var.get(),
+                    date_x_offset=self.date_x_offset_var.get(),
+                    date_y_offset=self.date_y_offset_var.get(),
+                    font_color=self.font_color_var.get(),
+                    fade_duration=self.fade_duration_var.get(),
+                    source_tz=ZoneInfo(self.source_tz_var.get()),
+                    target_tz=ZoneInfo(self.target_tz_var.get()),
+                )
+
+                files, dates = get_videos_dates(settings)
+                filter_complex, current_v, current_a = get_filter_graph(
+                    files, dates, settings
+                )
+                run_ffmpeg(filter_complex, current_v, current_a, files, settings)
+
+                def on_success():
+                    self.run_button.configure(state="normal")
+                    logger.success("Done!")
+                    messagebox.showinfo(
+                        "Success", "Video processing completed successfully!"
+                    )
+
+                self.after(0, on_success)
+            except Exception as e:
+
+                def on_error(err_msg=str(e)):
+                    self.run_button.configure(state="normal")
+                    logger.error(f"Error: {err_msg}")
+                    messagebox.showerror("Error", err_msg)
+
+                self.after(0, on_error)
+
         try:
             self.log_text.configure(state="normal")
             self.log_text.delete("1.0", tk.END)
             self.log_text.configure(state="disabled")
 
-            input_files_str = self.input_files_var.get()
-            if not input_files_str:
-                raise ValueError("No input files selected")
-
-            input_files = input_files_str.split(";")
-
-            settings = Settings(
-                input_files=input_files,
-                output_folder=self.output_folder_var.get(),
-                output_file_name=self.output_file_name_var.get(),
-                font=self.font_var.get(),
-                font_size=self.font_size_var.get(),
-                date_x_offset=self.date_x_offset_var.get(),
-                date_y_offset=self.date_y_offset_var.get(),
-                font_color=self.font_color_var.get(),
-                fade_duration=self.fade_duration_var.get(),
-                source_tz=ZoneInfo(self.source_tz_var.get()),
-                target_tz=ZoneInfo(self.target_tz_var.get()),
-            )
-
-            files, dates = get_videos_dates(settings)
-            filter_complex, current_v, current_a = get_filter_graph(
-                files, dates, settings
-            )
-            run_ffmpeg(filter_complex, current_v, current_a, files, settings)
-
-            logger.success("Done!")
-            messagebox.showinfo("Success", "Video processing completed successfully!")
+            self.run_button.configure(state="disabled")
+            threading.Thread(target=worker, daemon=True).start()
         except Exception as e:
-            logger.error(f"Error: {e}")
-            messagebox.showerror("Error", str(e))
+            logger.error(f"Error starting thread: {e}")
+            self.run_button.configure(state="normal")
+            messagebox.showerror("Error", f"Failed to start processing: {e}")
 
 
 if __name__ == "__main__":
