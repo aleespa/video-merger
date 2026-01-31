@@ -1,5 +1,6 @@
 import threading
 import tkinter as tk
+from datetime import datetime
 from tkinter import filedialog, messagebox
 from zoneinfo import ZoneInfo, available_timezones
 import customtkinter as ctk
@@ -85,7 +86,8 @@ class App(ctk.CTk):
         ctk.CTkLabel(self.main_frame, text="Output File Name:").grid(
             row=row, column=0, padx=10, pady=5, sticky="e"
         )
-        self.output_file_name_var = tk.StringVar(value="output.mp4")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.output_file_name_var = tk.StringVar(value=f"video_{timestamp}.mp4")
         self.output_file_name_entry = ctk.CTkEntry(
             self.main_frame, textvariable=self.output_file_name_var
         )
@@ -245,10 +247,14 @@ class App(ctk.CTk):
 
                 input_files = input_files_str.split(";")
 
+                output_file_name = self.output_file_name_var.get()
+                if not output_file_name.lower().endswith(".mp4"):
+                    output_file_name += ".mp4"
+
                 settings = Settings(
                     input_files=input_files,
                     output_folder=self.output_folder_var.get(),
-                    output_file_name=self.output_file_name_var.get(),
+                    output_file_name=output_file_name,
                     font=self.font_var.get(),
                     font_size=self.font_size_var.get(),
                     date_x_offset=self.date_x_offset_var.get(),
